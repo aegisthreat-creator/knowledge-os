@@ -1,0 +1,8 @@
+import type { Metadata } from 'next';
+import { NotesBrowser } from '@/features/notes/notes-browser';
+
+export const metadata: Metadata = { title: 'Notes' };
+
+export default function NotesPage() {
+  return <NotesBrowser />;
+}
