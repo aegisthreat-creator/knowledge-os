@@ -15,6 +15,7 @@ let studyRoute: typeof import('@/app/api/study/route');
 let decksRoute: typeof import('@/app/api/decks/route');
 let deckRoute: typeof import('@/app/api/decks/[id]/route');
 let cardsRoute: typeof import('@/app/api/decks/[id]/cards/route');
+let graphRoute: typeof import('@/app/api/graph/route');
 
 function jsonRequest(url: string, method: string, body: unknown): Request {
   return new Request(url, {
@@ -35,6 +36,7 @@ beforeAll(async () => {
   decksRoute = await import('@/app/api/decks/route');
   deckRoute = await import('@/app/api/decks/[id]/route');
   cardsRoute = await import('@/app/api/decks/[id]/cards/route');
+  graphRoute = await import('@/app/api/graph/route');
 });
 
 afterAll(() => {
@@ -67,6 +69,36 @@ describe('POST /api/notes', () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toBeTruthy();
+  });
+
+  it('trims titles and normalizes whitespace-only titles to empty', async () => {
+    const padded = await notesRoute.POST(
+      jsonRequest('http://test/api/notes', 'POST', { title: '   Padded title   ', content: 'x' }),
+    );
+    expect(padded.status).toBe(201);
+    const paddedNote = await padded.json();
+    expect(paddedNote.title).toBe('Padded title');
+
+    const blank = await notesRoute.POST(
+      jsonRequest('http://test/api/notes', 'POST', { title: '    ', content: 'x' }),
+    );
+    expect(blank.status).toBe(201);
+    const blankNote = await blank.json();
+    // Empty string (not whitespace) so `title || 'Untitled'` fallbacks apply.
+    expect(blankNote.title).toBe('');
+
+    const patched = await noteRoute.PATCH(
+      jsonRequest(`http://test/api/notes/${blankNote.id}`, 'PATCH', { title: '   ' }),
+      { params: Promise.resolve({ id: blankNote.id }) },
+    );
+    expect(patched.status).toBe(200);
+    expect((await patched.json()).title).toBe('');
+
+    for (const id of [paddedNote.id, blankNote.id]) {
+      await noteRoute.DELETE(new Request('http://test'), {
+        params: Promise.resolve({ id }),
+      });
+    }
   });
 
   it('lists notes with filters', async () => {
@@ -232,5 +264,44 @@ describe('flashcards + study flow', () => {
       jsonRequest('http://test', 'POST', { deckId, results: [] }),
     );
     expect(res.status).toBe(400);
+  });
+});
+
+describe('GET /api/graph', () => {
+  it('labels empty-titled notes as Untitled and resolves wikilinks', async () => {
+    const target = await notesRoute.POST(
+      jsonRequest('http://test/api/notes', 'POST', { title: 'Graph Target', content: 't' }),
+    );
+    const targetNote = await target.json();
+
+    const source = await notesRoute.POST(
+      jsonRequest('http://test/api/notes', 'POST', {
+        title: '   ',
+        content: 'points at [[Graph Target]]',
+      }),
+    );
+    const sourceNote = await source.json();
+    expect(sourceNote.title).toBe('');
+
+    const res = await graphRoute.GET();
+    expect(res.status).toBe(200);
+    const graph = await res.json();
+
+    const sourceNode = graph.nodes.find((n: { id: string }) => n.id === sourceNote.id);
+    expect(sourceNode).toBeTruthy();
+    expect(sourceNode.label).toBe('Untitled');
+
+    const edge = graph.edges.find(
+      (e: { source: string; target: string }) =>
+        e.source === sourceNote.id && e.target === targetNote.id,
+    );
+    expect(edge).toBeTruthy();
+
+    await noteRoute.DELETE(new Request('http://test'), {
+      params: Promise.resolve({ id: sourceNote.id }),
+    });
+    await noteRoute.DELETE(new Request('http://test'), {
+      params: Promise.resolve({ id: targetNote.id }),
+    });
   });
 });
