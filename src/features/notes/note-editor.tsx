@@ -57,6 +57,7 @@ export function NoteEditor({ id }: { id: string }) {
 
   const [draft, setDraft] = React.useState<DraftState | null>(null);
   const [saveState, setSaveState] = React.useState<SaveState>('idle');
+  const [savedAt, setSavedAt] = React.useState<string | null>(null);
   const [linkDialogOpen, setLinkDialogOpen] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
@@ -110,6 +111,7 @@ export function NoteEditor({ id }: { id: string }) {
         });
         if (!res.ok) throw new Error('save failed');
         dirtyRef.current = false;
+        setSavedAt(new Date().toISOString());
         if (!opts?.silent) setSaveState('saved');
         return true;
       } catch {
@@ -312,7 +314,7 @@ export function NoteEditor({ id }: { id: string }) {
           ))}
         </NativeSelect>
         <span className="ml-auto text-xs text-muted-foreground">
-          Updated {formatRelativeTime(note.updatedAt)}
+          Updated {formatRelativeTime(savedAt ?? note.updatedAt)}
         </span>
       </div>
 

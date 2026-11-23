@@ -345,7 +345,7 @@ export function AssistantPage() {
         <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4 text-primary" aria-hidden />
-            <span className="text-sm font-semibold">Assistant</span>
+            <h1 className="text-sm font-semibold">Assistant</h1>
             <Badge variant={aiStatus.connected ? 'success' : 'destructive'}>
               {aiStatus.loading ? 'checking…' : aiStatus.connected ? 'Ollama connected' : 'offline'}
             </Badge>

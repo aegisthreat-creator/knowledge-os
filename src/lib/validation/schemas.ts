@@ -2,7 +2,9 @@ import { z } from 'zod';
 
 /** Shared primitives */
 export const idSchema = z.string().min(1).max(64);
-export const titleSchema = z.string().max(300);
+// Trim on write so whitespace-only titles normalize to '' and fall back to
+// "Untitled" everywhere instead of rendering as blank labels.
+export const titleSchema = z.string().trim().max(300);
 export const tagNameSchema = z
   .string()
   .trim()

@@ -101,7 +101,7 @@ See [docs/architecture.md](docs/architecture.md) for the database schema and API
 
 ## Prerequisites
 
-- **Node.js 20.19+ or 22.x** (developed on Node 22)
+- **Node.js 20.19+ or 22.x** (developed and tested on Node 22 — see the unpdf note under [Installation troubleshooting](#installation-troubleshooting))
 - **npm** (ships with Node)
 - **Ollama** (optional — the app is fully usable without it; AI features light up when it's running)
 
@@ -112,6 +112,22 @@ git clone <your-fork-url> knowledge-os
 cd knowledge-os
 npm install
 ```
+
+### Installation troubleshooting
+
+- **`node-gyp` fails to download Node headers** (common on offline or
+  firewalled machines — better-sqlite3 compiles a native addon and normally
+  fetches headers from `nodejs.org`): point npm at your local Node headers
+  instead, which are already installed with Node:
+
+  ```bash
+  npm_config_nodedir="$(dirname "$(dirname "$(command -v node)")")" npm install
+  # or on most Linux layouts: npm_config_nodedir=/usr/local npm install
+  ```
+
+- **`EBADENGINE` warning for `unpdf`**: unpdf declares Node ≥ 24 while this
+  project is developed and tested on Node 22 — PDF text extraction has been
+  verified working on Node 22 despite the warning.
 
 ## Development
 
